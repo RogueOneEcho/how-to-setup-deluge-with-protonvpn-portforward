@@ -70,6 +70,19 @@ services:
       test: curl --fail http://localhost:8080 || exit 1
     restart: unless-stopped
 
+  flood:
+    container_name: flood
+    image: jesec/flood
+    user: "${USER_ID}:${GROUP_ID}"
+    volumes:
+    - /srv/flood/config:/config
+    - /srv/flood/data:/data
+    - /srv/shared:/srv/shared
+    network_mode: "service:tunnel"
+    healthcheck:
+      test: curl --fail http://localhost:3000 || exit 1
+    restart: unless-stopped
+
   prowlarr:
     container_name: prowlarr
     image: lscr.io/linuxserver/prowlarr:develop

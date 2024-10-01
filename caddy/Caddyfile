@@ -12,6 +12,10 @@
   reverse_proxy tunnel:8080
 }
 
+{$FLOOD_HOST} {
+  reverse_proxy tunnel:3000
+}
+
 {$PROWLARR_HOST} {
   reverse_proxy tunnel:9696
 }
