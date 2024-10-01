@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/deluge
+FROM lscr.io/linuxserver/qbittorrent
 ARG CROSS_SEED_API_KEY
 COPY --from=shared logging ./logging
 COPY cross-seed ./cross-seed

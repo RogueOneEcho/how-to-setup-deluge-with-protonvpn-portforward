@@ -8,6 +8,10 @@
   reverse_proxy tunnel:8112
 }
 
+{$QBIT_HOST} {
+  reverse_proxy tunnel:8080
+}
+
 {$PROWLARR_HOST} {
   reverse_proxy tunnel:9696
 }

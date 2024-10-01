@@ -47,16 +47,16 @@ services:
       test: ls /healthy
     restart: unless-stopped
 
-  deluge:
-    container_name: deluge
+  qbit:
+    container_name: qbit
     build:
-      context: deluge
+      context: qbit
       additional_contexts:
         shared: shared
       args:
         CROSS_SEED_API_KEY: ${CROSS_SEED_API_KEY}
     volumes:
-    - /srv/deluge:/config
+    - /srv/qbit:/config
     - /srv/shared:/srv/shared
     environment:
       PUID: ${USER_ID}
@@ -67,7 +67,7 @@ services:
       preflight:
         condition: service_completed_successfully
     healthcheck:
-      test: curl --fail http://localhost:8112 || exit 1
+      test: curl --fail http://localhost:8080 || exit 1
     restart: unless-stopped
 
   prowlarr:
@@ -105,7 +105,7 @@ services:
       --include-single-episodes true
     network_mode: "service:tunnel"
     depends_on:
-      deluge:
+      qbit:
         condition: service_healthy
       prowlarr:
         condition: service_healthy
@@ -125,7 +125,7 @@ services:
     - fertilizer/.env
     network_mode: "service:tunnel"
     depends_on:
-      deluge:
+      qbit:
         condition: service_healthy
     restart: unless-stopped
 

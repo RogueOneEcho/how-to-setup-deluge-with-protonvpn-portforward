@@ -27,14 +27,18 @@ then
   GLUETUN_API_PORT=${GLUETUN_API_PORT:-"8000"}
   log-information "GLUETUN_API_PORT is not set. Defaulting to ${GLUETUN_API_PORT}"
 fi
-if [[ -z "${DELUGE_WEB_PORT}" ]]
+if [[ -z "${QBIT_WEB_PORT}" ]]
 then
-  DELUGE_WEB_PORT=${DELUGE_WEB_PORT:-"8112"}
-  log-information "DELUGE_WEB_PORT is not set. Defaulting to ${DELUGE_WEB_PORT}"
+  QBIT_WEB_PORT=${QBIT_WEB_PORT:-"8080"}
+  log-information "QBIT_WEB_PORT is not set. Defaulting to ${QBIT_WEB_PORT}"
 fi
-if [[ -z "${DELUGE_PASSWORD}" ]]
+if [[ -z "${QBIT_USER}" ]]
 then
-  ISSUES+=("DELUGE_PASSWORD")
+  ISSUES+=("QBIT_USER")
+fi
+if [[ -z "${QBIT_PASSWORD}" ]]
+then
+  ISSUES+=("QBIT_PASSWORD")
 fi
 if [[ "${#ISSUES[@]}" -gt 0 ]]
 then
@@ -63,12 +67,11 @@ do
   fi
 
   log-debug "${BOLD}Authenticating${RESET} with API"
-  JSON=$(curl --fail-with-body --silent \
-    --header "Content-Type: application/json" \
-    --data '{"method": "auth.login", "params": ["'"${DELUGE_PASSWORD}"'"], "id": '${RANDOM}'}' \
+  if ! curl --fail-with-body --silent \
+    --data "username=${QBIT_USER}" \
+    --data "password=${QBIT_PASSWORD}" \
     --cookie-jar /tmp/deluge-cookie \
-    "http://localhost:${DELUGE_WEB_PORT}/json")
-  if [[ $(echo "${JSON}" | jq -r '.result') != "true" || $(echo "${JSON}" | jq -r '.error') != "null" ]]
+    "http://localhost:${QBIT_WEB_PORT}/api/v2/auth/login"
   then
     log-error "${BOLD}Failed${RESET} to authenticate"
     log-trace "${JSON}"
@@ -76,62 +79,12 @@ do
     continue
   fi
 
-  log-debug "${BOLD}Checking${RESET} daemon connection"
-  JSON=$(curl --fail-with-body --silent \
-    --header "Content-Type: application/json" \
-    --data '{"method": "web.connected", "params": [], "id": '${RANDOM}'}' \
-    --cookie /tmp/deluge-cookie \
-    "http://localhost:${DELUGE_WEB_PORT}/json")
-  if [[ $(echo "${JSON}" | jq -r '.result') != "true" || $(echo "${JSON}" | jq -r '.error') != "null" ]]
-  then
-    log-warning "Daemon is not connected. Will attempt to connect"
-    log-trace "${JSON}"
-
-    log-debug "${BOLD}Listing${RESET} daemons"
-    JSON=$(curl --fail-with-body --silent \
-      --header "Content-Type: application/json" \
-      --data '{"method": "web.get_hosts", "params": [], "id": '${RANDOM}'}' \
-      --cookie /tmp/deluge-cookie \
-      "http://localhost:${DELUGE_WEB_PORT}/json")
-    log-trace "${JSON}"
-    if [[ $(echo "${JSON}" | jq -r '.error') != "null" ]]
-    then
-      log-error "${BOLD}Failed${RESET} to list daemons"
-      log-trace "${JSON}"
-      failed-wait-and-retry
-      continue
-    fi
-
-    HOST_ID=$(echo "${JSON}" | jq -r '.result[0][0]')
-    log-debug "${BOLD}Connecting${RESET} web client to daemon ${HOST_ID}"
-    JSON=$(curl --fail-with-body --silent \
-      --header "Content-Type: application/json" \
-      --data '{"method": "web.connect", "params": ["'"${HOST_ID}"'"], "id": '${RANDOM}'}' \
-      --cookie /tmp/deluge-cookie \
-      "http://localhost:${DELUGE_WEB_PORT}/json")
-    if [[ $(echo "${JSON}" | jq -r '.error') != "null" ]]
-    then
-      log-error "${BOLD}Failed${RESET} to connect web client to daemon"
-      log-trace "${JSON}"
-      failed-wait-and-retry
-      continue
-    fi
-  fi
-
   log-debug "${BOLD}Setting${RESET} listen port"
-  JSON=$(curl --fail-with-body --silent \
-    --header "Content-Type: application/json" \
-    --data '{"method": "core.set_config", "params": [{"listen_ports": ['"${PORT}"','"${PORT}"']}], "id": '${RANDOM}'}' \
+  if ! curl --fail-with-body --silent \
     --cookie /tmp/deluge-cookie \
-    "http://localhost:${DELUGE_WEB_PORT}/json")
-  if [[ $(echo "${JSON}" | jq -r '.error') != "null" ]]
+    --data-urlencode "json={\"listen_port\": ${PORT}}" \
+    "http://localhost:${QBIT_WEB_PORT}/api/v2/app/setPreferences"
   then
-    if [[ $(echo "${JSON}" | jq -r '.error.message') == "Unknown method" ]]
-    then
-      log-error "Daemon is probably not connected"
-    else
-      log-error "${BOLD}Failed${RESET} to set listen port"
-    fi
     log-trace "${JSON}"
     failed-wait-and-retry
     continue
