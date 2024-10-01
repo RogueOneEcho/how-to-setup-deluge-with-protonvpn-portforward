@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/qbittorrent
+FROM lscr.io/linuxserver/qbittorrent:4.6.7
 ARG CROSS_SEED_API_KEY
 COPY --from=shared logging ./logging
 COPY cross-seed ./cross-seed
