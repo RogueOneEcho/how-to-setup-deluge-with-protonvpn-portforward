@@ -8,6 +8,8 @@ To keep things clear this guide is split into multiple parts with each building 
 
 - Part 3 [Use a custom domain and HTTPS/TLS with Caddy](https://github.com/RogueOneEcho/how-to-setup-deluge-with-protonvpn-portforward/tree/part-3)
 
+- Part 4 [Add Flood as a modern UI for Deluge](https://github.com/RogueOneEcho/how-to-setup-deluge-with-protonvpn-portforward/tree/part-4)
+
 ## Downloading the code
 
 Simply clone the repository and checkout the branch for the part you want to follow.
