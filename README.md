@@ -71,6 +71,10 @@ Caddy doesn't use plain text logging so if you find that to confusing try this s
 docker logs caddy 2>&1 | jq --color-output | less -R
 ```
 
+## Next steps
+
+-  Part 4 [Add Flood as a modern UI for Deluge](https://github.com/RogueOneEcho/how-to-setup-deluge-with-protonvpn-portforward/tree/part-4)
+
 ## Troubleshooting
 
 1. Check the logs
