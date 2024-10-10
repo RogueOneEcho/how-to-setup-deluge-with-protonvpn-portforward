@@ -75,12 +75,13 @@ services:
     image: jesec/flood
     user: "${USER_ID}:${GROUP_ID}"
     volumes:
-    - /srv/flood/config:/config
-    - /srv/flood/data:/data
+    - /srv/flood:/config
     - /srv/shared:/srv/shared
     network_mode: "service:tunnel"
     healthcheck:
-      test: curl --fail http://localhost:3000 || exit 1
+      test: wget --spider http://tunnel:3000 || exit 1
+    command:
+    - "--rundir=/config"
     restart: unless-stopped
 
   prowlarr:
