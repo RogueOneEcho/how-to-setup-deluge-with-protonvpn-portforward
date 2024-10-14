@@ -47,12 +47,24 @@ while true
 do
   log-information "${BOLD}Running${RESET} monitor"
 
-  log-debug "${BOLD}Determining${RESET} forwarded port"
+  log-debug "${BOLD}Requesting${RESET} forwarded port from Gluetun"
   JSON=$(curl --fail --silent --show-error "http://localhost:${GLUETUN_API_PORT}/v1/openvpn/portforwarded")
   PORT=$(echo "${JSON}" | jq -r '.port')
-  if [[ "${PORT}" == "" ]]
+  if [[ "${JSON}" == "" ]]
   then
-    log-error "Forwarded port is not defined"
+    log-error "${BOLD}Empty${RESET} response from Gluetun"
+    failed-wait-and-retry
+    continue
+  elif [[ "${PORT}" == "" ]]
+  then
+    log-error "Forwarded port is not defined according to Gluetun"
+    log-trace "${JSON}"
+    failed-wait-and-retry
+    continue
+  elif [[ "${PORT}" == "0" ]]
+  then
+    log-error "Forwarded port is 0 according to Gluetun"
+    log-trace "${JSON}"
     failed-wait-and-retry
     continue
   elif [[ -f /port && $(cat /port) == "${PORT}" ]]
@@ -62,21 +74,26 @@ do
     continue
   fi
 
-  log-debug "${BOLD}Authenticating${RESET} with API"
+  log-debug "${BOLD}Authenticating${RESET} with Deluge API"
   JSON=$(curl --fail-with-body --silent \
     --header "Content-Type: application/json" \
     --data '{"method": "auth.login", "params": ["'"${DELUGE_PASSWORD}"'"], "id": '${RANDOM}'}' \
     --cookie-jar /tmp/deluge-cookie \
     "http://localhost:${DELUGE_WEB_PORT}/json")
-  if [[ $(echo "${JSON}" | jq -r '.result') != "true" || $(echo "${JSON}" | jq -r '.error') != "null" ]]
+  if [[ "${JSON}" == "" ]]
   then
-    log-error "${BOLD}Failed${RESET} to authenticate"
+    log-error "${BOLD}Empty${RESET} response from Deluge API"
+    failed-wait-and-retry
+    continue
+  elif [[ $(echo "${JSON}" | jq -r '.result') != "true" || $(echo "${JSON}" | jq -r '.error') != "null" ]]
+  then
+    log-error "${BOLD}Failed${RESET} to authenticate with Deluge API"
     log-trace "${JSON}"
     failed-wait-and-retry
     continue
   fi
 
-  log-debug "${BOLD}Checking${RESET} daemon connection"
+  log-debug "${BOLD}Checking${RESET} Deluge daemon connection"
   JSON=$(curl --fail-with-body --silent \
     --header "Content-Type: application/json" \
     --data '{"method": "web.connected", "params": [], "id": '${RANDOM}'}' \
@@ -84,7 +101,7 @@ do
     "http://localhost:${DELUGE_WEB_PORT}/json")
   if [[ $(echo "${JSON}" | jq -r '.result') != "true" || $(echo "${JSON}" | jq -r '.error') != "null" ]]
   then
-    log-warning "Daemon is not connected. Will attempt to connect"
+    log-warning "Deluge daemon is not connected. Will attempt to connect"
     log-trace "${JSON}"
 
     log-debug "${BOLD}Listing${RESET} daemons"
@@ -111,7 +128,7 @@ do
       "http://localhost:${DELUGE_WEB_PORT}/json")
     if [[ $(echo "${JSON}" | jq -r '.error') != "null" ]]
     then
-      log-error "${BOLD}Failed${RESET} to connect web client to daemon"
+      log-error "${BOLD}Failed${RESET} to connect Deluge web client to daemon"
       log-trace "${JSON}"
       failed-wait-and-retry
       continue
@@ -128,7 +145,7 @@ do
   then
     if [[ $(echo "${JSON}" | jq -r '.error.message') == "Unknown method" ]]
     then
-      log-error "Daemon is probably not connected"
+      log-error "Deluge daemon is probably not connected"
     else
       log-error "${BOLD}Failed${RESET} to set listen port"
     fi
